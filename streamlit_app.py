@@ -130,7 +130,7 @@ machines = [
     "CEFT 2400", "CEFT 1300", "Bouilleur", "ECH Bouilleur",
     "CEFT 1600", "ECH 2400", "ECH EA", "ECH ED",
     "DCH Fondoir F0", "DCH Fondoir F1", "DCH Fondoir F2", "DCH des eaux sucrées ES", "Condenseur",
-    "VKT", "CMV","Cuite 710HL", "Cuite 550HL", "R2", "ECH sécheur", "R31", "R32", "R4", "A", "B", "C",
+    "VKT", "CMV","Station de carbonatation","Cuite 710HL", "Cuite 550HL", "R2", "ECH sécheur", "R31", "R32", "R4", "A", "B", "C","Divers machines restantes"
 ]
 
 # ---- Fonction Cp ----
@@ -835,6 +835,63 @@ def bilan_CMV():
             st.error(f"Erreur dans le calcul : {e}")
 
 #######################################################################################
+
+def bilan_carbo():
+    st.header("Bilan de l'échangeur sécheur")
+    st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, débit volumiques")
+
+    h_VPT = st.number_input("Enthalpie vapeur VPT (kJ/kg)", min_value=0.0)
+
+    Q_FC = st.number_input("Débit de la fonte commune entrante (m³/h)", min_value=0.0)
+    T_FC = st.number_input("Température de la fonte commune entrante (°C)", min_value=0.0)
+    Brix_FC = st.number_input("Brix de la fonte commune entrante (%)", min_value=0.0, max_value=100.0, value=100.0)
+
+    Q_FCa = st.number_input("Débit de la fonte carbonaté sortante (m³/h)", min_value=0.0)
+    T_FCa = st.number_input("Température de la fonte carbonaté sortante (°C)", min_value=0.0)
+    Brix_FCa = st.number_input("Brix de la fonte carbonaté sortante (%)", min_value=0.0, max_value=100.0, value=100.0)
+
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+
+
+    if st.button("Calculer VPT - Station de carbonatation"):
+        try:
+            Cp_FC = Cp(Brix_FC)
+            Cp_FCa = Cp(Brix_FCa)
+            m_FCa=Q_FCa * D(Brix_FCa)
+            m_FC=Q_FC * D(Brix_FC)
+
+            numerator = m_FCa * Cp_FCa * T_FCa - m_FC * Cp_FC * T_FC
+            denominator = h_VPT - h_CDS
+
+            if denominator == 0:
+                st.error("Erreur : enthalpie vapeur VPT = 0 → division impossible.")
+                return
+
+            m_VPT = numerator / denominator
+            m_CDS = m_VPT
+
+            st.success(f"🔹Débit vapeur entrante VPT calculé = {m_VPT:.2f} t/h")
+
+            # Enregistrement dans session_state
+            st.session_state["resultats_machines"]["Station de carbonatation"] = {
+                "VPT": m_VPT,
+                "CDS": m_CDS
+            }
+
+        except Exception as e:
+            st.error(f"Erreur dans le calcul : {e}")
+
+
+
+
+
+
+
+
+
+
+
+
 def bilan_cuite710():
     st.header("Bilan de la cuite 710 HL")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
@@ -1397,6 +1454,33 @@ def bilan_cuiteC():
 
 
 
+def bilan_divers():
+    st.header("Bilan de la machine Divers")
+
+    try:
+        # Débit vapeur produite par le Bouilleur
+        m_VPT_bouilleur = st.session_state["resultats_machines"]["Bouilleur"]["VPT"]
+    except KeyError:
+        st.error("Le débit VPT du Bouilleur n'est pas encore disponible.")
+        return
+
+    # Récupérer tous les débits VPT consommés par les machines (hors Bouilleur et Divers)
+    m_VPT_consommée = 0.0
+    for machine, resultats in st.session_state["resultats_machines"].items():
+        if machine not in ["Bouilleur", "Divers"]:
+            if "VPT" in resultats:
+                m_VPT_consommée += resultats["VPT"]
+
+    # Calcul du débit de la machine Divers
+    m_VPT_divers = m_VPT_bouilleur - m_VPT_consommée
+
+    # Affichage du résultat
+    st.markdown(f"### 🔹 Débit de vapeur VPT attribué à la machine Divers : **{m_VPT_divers:.2f} t/h**")
+
+    # Enregistrement dans les résultats
+    st.session_state["resultats_machines"]["Divers"] = {
+        "VPT": m_VPT_divers
+    }
 
 
 
@@ -1446,6 +1530,8 @@ bilan_machines = {
     "DCH des eaux sucrées ES": bilan_dch_ES,
     "Condenseur": bilan_condenseur,
     "VKT": bilan_vkt,
+    "CMV" : bilan_CMV,
+    "Station de carbonatation" : bilan_carbo ,
     "Cuite 710HL" : bilan_cuite710,
     "Cuite 550HL" : bilan_cuite550,
     "R2" : bilan_cuiteR2,
@@ -1456,6 +1542,7 @@ bilan_machines = {
     "A" : bilan_cuiteA,
     "B" : bilan_cuiteB,
     "C" : bilan_cuiteC,
+    "Divers machines restantes" :bilan_divers,
 }
 
 # Sélection de la machine
@@ -1515,6 +1602,8 @@ def regroupement_par_vapeur(resultats):
         "Cuite 710HL": "VPT",
         "Cuite 550HL": "VPT",
         "R2": "VPT",
+        "Echangeur sécheur" : "VPT",
+        "Station de carbonatation" :"VPT",
         "R31": "Vvkt",
         "R32": "Vvkt",
         "R4": "Vvkt",
