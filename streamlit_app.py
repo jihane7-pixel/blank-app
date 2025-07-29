@@ -129,7 +129,7 @@ st.markdown(f"""
 machines = [
     "CEFT 2400", "CEFT 1300", "Bouilleur", "ECH Bouilleur",
     "CEFT 1600", "ECH 2400", "ECH EA", "ECH ED",
-    "DCH Fondoir F0", "DCH Fondoir F1", "DCH Fondoir F2", "DCH des eaux sucrées ES",
+    "DCH Fondoir F0", "DCH Fondoir F1", "DCH Fondoir F2", "DCH des eaux sucrées ES", "Condenseur",
     "VKT", "CMV","Cuite 710HL", "Cuite 550HL", "R2", "ECH sécheur", "R31", "R32", "R4", "A", "B", "C",
 ]
 
@@ -137,7 +137,9 @@ machines = [
 def Cp(brix):
     return 4.19 * (brix / 100) + 1.42 * (1 - brix / 100)
                 
-
+#------------Densité---------------
+def D(brix):
+    return 0.96 + brix/200
                 
 # ---- Bilans ----
 
@@ -148,11 +150,10 @@ def bilan_ceft_2400():
     h_CDS = st.number_input("Enthalpie CDS (KJ/Kg)", min_value=0.0)
     h_VP1p = st.number_input("Enthalpie VP1'(KJ/Kg)", min_value=0.0)
     
-    m_SNC = st.number_input("Débit volumique SNC (m³/h)", min_value=0.0)
+    Q_SNC = st.number_input("Débit volumique SNC (m³/h)", min_value=0.0)
     T_SNC = st.number_input("Température SNC (°C)", min_value=0.0)
     Brix_SNC = st.number_input("Brix SNC (%)", min_value=0.0, max_value=100.0)
     
-    m_SC1 = st.number_input("Débit volumique SC1 (m³/h)", min_value=0.0)
     T_SC1 = st.number_input("Température SC1 (°C)", min_value=0.0)
     Brix_SC1 = st.number_input("Brix SC1 (%)", min_value=0.0, max_value=100.0)
     
@@ -164,6 +165,9 @@ def bilan_ceft_2400():
         try:
             Cp_SC1 = Cp(Brix_SC1)
             Cp_SNC = Cp(Brix_SNC)
+            Q_SC1 = (Q_SNC*Brix_SNC)/ Brix_SC1
+            m_SNC=Q_SNC * D(Brix_SNC)
+            m_SC1=Q_SC1 * D(Brix_SC1)
             m_VP1p = m_SNC - m_SC1
             numerator = m_VP1p * h_VP1p + m_SC1 * Cp_SC1 * T_SC1 - m_SNC * Cp_SNC * T_SNC
             denominator = h_VE - h_CDS
@@ -175,6 +179,7 @@ def bilan_ceft_2400():
 
             st.success(f"🔹Débit vapeur entrante VE calculé = {m_VE:.2f} t/h")
             st.success(f"🔹Débit vapeur sortante VP1 calculé = {m_VP1p:.2f} t/h")
+            st.success(f"🔹Débit du sirop sortant SC1 = {Q_SC1:.2f} m³/h = {m_SC1:.2f} t/h" )
             st.success(f"🔹Débit des condensats= {m_CDS:.2f} t/h")
 
             st.session_state["resultats_machines"]["CEFT 2400"] = {
@@ -190,13 +195,12 @@ def bilan_ceft_1300():
     h_CDS = st.number_input("Enthalpie CDS (kJ/kg)", min_value=0.0)
     h_VP1pp = st.number_input("Enthalpie VP1'' (kJ/kg)", min_value=0.0)
     
-    m_SC1p = st.number_input("Débit SC1 (m³/h)", min_value=0.0)
-    T_SC1p = st.number_input("Température SC1 (°C)", min_value=0.0)
-    Brix_SC1p = st.number_input("Brix SC1 (%)", min_value=0.0, max_value=100.0)
-   
-    m_SC2 = st.number_input("Débit SC2 (m³/h)", min_value=0.0)    
-    T_SC2 = st.number_input("Température SC2 (°C)", min_value=0.0)
-    Brix_SC2 = st.number_input("Brix SC2 (%)", min_value=0.0, max_value=100.0)
+    Q_SC1p = st.number_input("Débit du sirop entrant SC1 (m³/h)", min_value=0.0)
+    T_SC1p = st.number_input("Température du sirop entrant SC1 (°C)", min_value=0.0)
+    Brix_SC1p = st.number_input("Brix du sirop entrant SC1 (%)", min_value=0.0, max_value=100.0)
+      
+    T_SC2 = st.number_input("Température du sirop sortant SC2 (°C)", min_value=0.0)
+    Brix_SC2 = st.number_input("Brix du sirop sortant SC2 (%)", min_value=0.0, max_value=100.0)
 
 
     
@@ -205,6 +209,9 @@ def bilan_ceft_1300():
         try:
             Cp_SC1p = Cp(Brix_SC1p)
             Cp_SC2 = Cp(Brix_SC2)
+            Q_SC2 = (Q_SC1p*Brix_SC1p)/ Brix_SC2
+            m_SC1p=Q_SC1p * D(Brix_SC1p)
+            m_SC2=Q_SC2 * D(Brix_SC2)
             m_VP1pp = m_SC1p - m_SC2
             numerator = m_VP1pp * h_VP1pp + m_SC2 * Cp_SC2 * T_SC2 - m_SC1p * Cp_SC1p * T_SC1p
             denominator = h_VE - h_CDS
@@ -216,6 +223,7 @@ def bilan_ceft_1300():
 
             st.success(f"🔹Débit vapeur entrante VE calculé = {m_VE:.2f} t/h")
             st.success(f"🔹Débit vapeur sortante VP1' calculé = {m_VP1pp:.2f} t/h")
+            st.success(f"🔹Débit du sirop sortant SC2 = {Q_SC2:.2f} m³/h = {m_SC2:.2f} t/h" ) 
             st.success(f"🔹Débit des condensats = {m_CDS:.2f} t/h")
 
             st.session_state["resultats_machines"]["CEFT 1300"] = {
@@ -228,17 +236,20 @@ def bilan_bouilleur():
     st.header("Bilan du bouilleur")
     st.info("Saisissez les données des entrées et sorties de votre machine : Enthalpies et les débits volumiques")
     h_VE = st.number_input("Enthalpie VE (kJ/kg)", min_value=0.0)
-    m_E = st.number_input("Débit d'eau d'alimentation (m³/h)", min_value=0.0)
+    Q_E = st.number_input("Débit d'eau d'alimentation (m³/h)", min_value=0.0)
     h_E = st.number_input("Enthalpie de l'eau d'alimentation (kJ/kg)", min_value=0.0)
     h_VPT = st.number_input("Enthalpie VPT (kJ/kg)", min_value=0.0)
     h_P = st.number_input("Enthalpie purge (kJ/kg)", min_value=0.0)
-    m_CDS = st.number_input("Débit des condesats (m³/h)", min_value=0.0)
+    Q_CDS = st.number_input("Débit des condesats (m³/h)", min_value=0.0)
     h_CDS = st.number_input("Enthalpie CDS (kJ/kg)", min_value=0.0)
 
     
 
     if st.button("Calculer VE - Bouilleur"):
         try:
+            Brix_E= Brix_CDS =100
+            m_E=Q_E * D(Brix_E)
+            m_CDS=Q_CDS * D(Brix_CDS)
             m_P = 0.02 * m_E
             m_VPT = m_E - m_P
             numerator = m_VPT * h_VPT + m_P * h_P + m_CDS * h_CDS- m_E * h_E
@@ -270,8 +281,8 @@ def bilan_echangeur_bouilleur():
 
     h_VE = st.number_input("Enthalpie VE (kJ/kg)", min_value=0.0)
     h_CDS = st.number_input("Enthalpie CDS (kJ/kg)", min_value=0.0)
-    m_fe = st.number_input("Débit de l'eau entrant (m³/h))", min_value=0.0)
-    m_fs = st.number_input("Débit de l'eau sortant (m³/h))", min_value=0.0)
+    Q_fe = st.number_input("Débit de l'eau entrant (m³/h))", min_value=0.0)
+    Q_fs = st.number_input("Débit de l'eau sortant (m³/h))", min_value=0.0)
     h_fe = st.number_input("Enthalpie de l'eau entrant ", min_value=0.0)
     h_fs = st.number_input("Enthalpie de l'eau sortant ", min_value=0.0)
     h_VE = st.number_input("Enthalpie vapeur entrante VE ", min_value=0.0)
@@ -279,6 +290,9 @@ def bilan_echangeur_bouilleur():
 
     if st.button("Calculer VE - Échangeur Bouilleur"):
         try:
+            Brix_fe= Brix_fs =100
+            m_fs=Q_fs * D(Brix_fs)
+            m_fe=Q_fe * D(Brix_fe)
             numerator = m_fs * h_fs - m_fe*h_fe
             denominator = h_VE - h_CDS
 
@@ -311,11 +325,10 @@ def bilan_ceft_1600():
     h_CDS = st.number_input("Enthalpie condensats (kJ/kg)", min_value=0.0)
     h_VP2 = st.number_input("Enthalpie vapeur VP2 (kJ/kg)", min_value=0.0)
 
-    m_SC2 = st.number_input("Débit du sirop concentré entrant SC2 (m³/h)", min_value=0.0)
+    Q_SC2 = st.number_input("Débit du sirop concentré entrant SC2 (m³/h)", min_value=0.0)
     T_SC2 = st.number_input("Température SC2 (°C)", min_value=0.0)
     Brix_SC2 = st.number_input("Brix SC2 (%)", min_value=0.0, max_value=100.0)
 
-    m_SCf = st.number_input("Débit du sirop concentré sortant SCf (m³/h)", min_value=0.0)
     T_SCf = st.number_input("Température SCf (°C)", min_value=0.0)
     Brix_SCf = st.number_input("Brix SCf (%)", min_value=0.0, max_value=100.0)
     
@@ -325,6 +338,9 @@ def bilan_ceft_1600():
         try:
             Cp_SC2 = Cp(Brix_SC2)
             Cp_SCf = Cp(Brix_SCf)
+            Q_SCf = (Q_SC2*Brix_SC2)/ Brix_SCf
+            m_SC2=Q_SC2 * D(Brix_SC2)
+            m_SCf=Q_SCf * D(Brix_SCf)
 
             # Récupérer ṁ_VP1' et ṁ_VP1'' des autres bilans
             try:
@@ -347,6 +363,7 @@ def bilan_ceft_1600():
 
             st.success(f"🔹Débit vapeur entrante VP1 calculé = {m_VP1:.2f} t/h")
             st.success(f"🔹Débit vapeur sortante VP2 calculé = {m_VP2:.2f} t/h")
+            st.success(f"🔹Débit du sirop sortant SCf = {Q_SCf:.2f} m³/h = {m_SCf:.2f} t/h" )
             st.success(f"🔹Débit des condensats= {m_VP1:.2f} t/h")
 
             # Enregistrement
@@ -531,19 +548,20 @@ def bilan_dch_f2():
    
     h_VP1 = st.number_input("Enthalpie vapeur VP1", min_value=0.0)
 
-    m_SF1 = st.number_input("Débit du sirop à la sortie F1 (SF1)", min_value=0.0)
-    T_SF1 = st.number_input("Température SF1", min_value=0.0)
-    Brix_SF1 = st.number_input("Brix SF1 (%)", min_value=0.0, max_value=100.0)
+    Q_SF1 = st.number_input("Débit du sirop à la sortie F1  (m³/h)", min_value=0.0)
+    T_SF1 = st.number_input("Température du sirop à la sortie F1  (°C)", min_value=0.0)
+    Brix_SF1 = st.number_input("Brix du sirop à la sortie F1  (%)", min_value=0.0, max_value=100.0)
 
-    m_SF2 = st.number_input("Débit du sirop sortant vers F2 (SF2)", min_value=0.0)
-    T_SF2 = st.number_input("Température SF2", min_value=0.0)
-    Brix_SF2 = st.number_input("Brix SF2 (%)", min_value=0.0, max_value=100.0)
+    Q_SF2 = st.number_input("Débit du sirop sortant vers F2 (m³/h)", min_value=0.0)
+    T_SF2 = st.number_input("Température du sirop sortant vers F2   (°C)", min_value=0.0)
+    Brix_SF2 = st.number_input("Brix du sirop sortant vers F2 (%)", min_value=0.0, max_value=100.0)
 
     if st.button("Calculer VP1 - DCH F2"):
         try:
             Cp_SF1 = Cp(Brix_SF1)
             Cp_SF2 = Cp(Brix_SF2)
-
+            m_SF2=Q_SF2 * D(Brix_SF2)
+            m_SF1=Q_SF1 * D(Brix_SF1)
             numerator = m_SF2 * Cp_SF2 * T_SF2 - m_SF1 * Cp_SF1 * T_SF1
             denominator = h_VP1
 
@@ -566,21 +584,22 @@ def bilan_dch_f2():
 def bilan_dch_f0():
     st.header("Bilan du DCH du fondoir F0")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, débit volumiques")
+    h_VP2 = st.number_input("Enthalpie vapeur VP2 (kJ/kg)", min_value=0.0)
+    Q_Memp = st.number_input("Débit du sirop non concentré sortie de l'empateur (m³/h)", min_value=0.0)
+    T_Memp = st.number_input("Température du sirop non concentré sortie de l'empateur (°C)", min_value=0.0)
+    Brix_Memp = st.number_input("Brix du sirop non concentré sortie de l'empateur (%)", min_value=0.0, max_value=100.0)
 
-    h_VP2 = st.number_input("Enthalpie vapeur VP2", min_value=0.0)
-    m_Memp = st.number_input("Débit du sirop non concentré sortie de l'empateur (Memp)", min_value=0.0)
-    T_Memp = st.number_input("Température Memp", min_value=0.0)
-    Brix_Memp = st.number_input("Brix Memp (%)", min_value=0.0, max_value=100.0)
+    Q_MF0 = st.number_input("Débit du sirop sortant vers F0 (m³/h)", min_value=0.0)
+    T_MF0 = st.number_input("Température du sirop sortant vers F0 (°C)", min_value=0.0)
+    Brix_MF0 = st.number_input("Brix du sirop sortant vers F0 (%)", min_value=0.0, max_value=100.0)
 
-    m_MF0 = st.number_input("Débit du sirop sortant vers F0 (MF0)", min_value=0.0)
-    T_MF0 = st.number_input("Température MF0", min_value=0.0)
-    Brix_MF0 = st.number_input("Brix MF0 (%)", min_value=0.0, max_value=100.0)
 
     if st.button("Calculer VP2 - DCH F0"):
         try:
             Cp_Memp = Cp(Brix_Memp)
             Cp_MF0 = Cp(Brix_MF0)
-
+            m_Memp=Q_Memp* D(Brix_Memp)
+            m_MF0 = Q_MF0* D(Brix_MF0)
             numerator = m_MF0 * Cp_MF0 * T_MF0 - m_Memp * Cp_Memp * T_Memp
             denominator = h_VP2
 
@@ -607,21 +626,23 @@ def bilan_dch_f1():
     st.header("Bilan du DCH du fondoir F1")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, débit volumiques")
 
-    h_VP2 = st.number_input("Enthalpie vapeur VP2", min_value=0.0)
+    h_VP2 = st.number_input("Enthalpie vapeur VP2 (kJ/kg)", min_value=0.0)
 
-    m_MF0 = st.number_input("Débit du sirop sortant de F0 (MF0)", min_value=0.0)
-    T_MF0 = st.number_input("Température MF0", min_value=0.0)
-    Brix_MF0 = st.number_input("Brix MF0 (%)", min_value=0.0, max_value=100.0)
+    Q_MF0 = st.number_input("Débit du sirop sortant de F0 (m³/h)", min_value=0.0)
+    T_MF0 = st.number_input("Température du sirop sortant de F0 (°C)", min_value=0.0)
+    Brix_MF0 = st.number_input("Brix du sirop sortant de F0 (%)", min_value=0.0, max_value=100.0)
 
-    m_MF1 = st.number_input("Débit du sirop sortant vers F1 (MF1)", min_value=0.0)
-    T_MF1 = st.number_input("Température MF1", min_value=0.0)
-    Brix_MF1 = st.number_input("Brix MF1 (%)", min_value=0.0, max_value=100.0)
+    Q_MF1 = st.number_input("Débit du sirop sortant vers F1 (m³/h)", min_value=0.0)
+    T_MF1 = st.number_input("Température du sirop sortant vers F1 (°C)", min_value=0.0)
+    Brix_MF1 = st.number_input("Brix du sirop sortant vers F1 (%)", min_value=0.0, max_value=100.0)
+
 
     if st.button("Calculer VP2 - DCH F1"):
         try:
             Cp_MF0= Cp(Brix_MF0)
             Cp_MF1 = Cp(Brix_MF1)
-
+            m_MF0= Q_MF0* D(Brix_MF0)
+            m_MF1 = Q_MF1* D(Brix_MF1)
             numerator = (m_MF1 * Cp_MF1 * T_MF1) - (m_MF0 * Cp_MF0 * T_MF0)
             denominator = h_VP2
 
@@ -648,22 +669,25 @@ def bilan_dch_ES():
     st.header("Bilan du DCH du fondoir des eaux sucrées")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, débit volumiques")
 
-    h_VP2 = st.number_input("Enthalpie vapeur VP2", min_value=0.0)
+    h_VP2 = st.number_input("Enthalpie vapeur VP2 (kJ/kg)", min_value=0.0)
 
-    m_ESe = st.number_input("Débit des eaux sucrées entrant (ESe)", min_value=0.0)
-    T_ESe = st.number_input("Température ESe", min_value=0.0)
-    Brix_ESe = st.number_input("Brix ESe (%)", min_value=0.0, max_value=100.0)
+    Q_ESe = st.number_input("Débit des eaux sucrées entrantes (m³/h)", min_value=0.0)
+    T_ESe = st.number_input("Température des eaux sucrées entrantes (°C)", min_value=0.0)
+    Brix_ESe = st.number_input("Brix des eaux sucrées entrantes (%)", min_value=0.0, max_value=100.0)
 
-    m_ESs = st.number_input("Débit des eaux sucrées sortant (ESs)", min_value=0.0)
-    T_ESs = st.number_input("Température ESs", min_value=0.0)
-    Brix_ESs = st.number_input("Brix ESs (%)", min_value=0.0, max_value=100.0)
+    Q_ESs = st.number_input("Débit des eaux sucrées sortantes (m³/h)", min_value=0.0)
+    T_ESs = st.number_input("Température des eaux sucrées sortantes (°C)", min_value=0.0)
+    Brix_ESs = st.number_input("Brix des eaux sucrées sortantes (%)", min_value=0.0, max_value=100.0)
 
-    h_CDS = st.number_input("Enthalpie condensats ", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+
 
     if st.button("Calculer VP2 - DCH ES"):
         try:
             Cp_ESs = Cp(Brix_ESs)
             Cp_ESe = Cp(Brix_ESe)
+            m_ESe= Q_ESe* D(Brix_ESe)
+            m_ESs = Q_ESs* D(Brix_ESs)
 
             numerator = m_ESs * Cp_ESs * T_ESs - m_ESe * Cp_ESe * T_ESe
             denominator = h_VP2 - h_CDS
@@ -687,9 +711,40 @@ def bilan_dch_ES():
             st.error(f"Erreur dans le calcul : {e}")
 
 ###########################################################################
+def bilan_condenseur():
+    st.header("Bilan du Condenseur")
+    st.info("Le débit de vapeur au condenseur est estimé par différence entre la vapeur générée (par CEFT 1600) et celle consommée par les DCH.")
 
-def D(brix):
-    return 0.96 + brix/200
+    try:
+        resultats = st.session_state.get("resultats_machines", {})
+
+        # Vapeur produite par la CEFT 1600 (VP2)
+        VP2_CEFT = resultats.get("CEFT 1600", {}).get("VP2", 0)
+
+        # Vapeurs consommées par les DCHs
+        VP2_F0 = resultats.get("DCH Fondoir F0", {}).get("VP2", 0)
+        VP2_F1 = resultats.get("DCH Fondoir F1", {}).get("VP2", 0)
+        VP2_ES = resultats.get("DCH ES", {}).get("VP2", 0)
+
+        vapeur_consommée =  VP2_F0 + VP2_F1 + VP2_ES
+        vapeur_condenseur = VP2_CEFT - vapeur_consommée
+
+        # Affichage
+        st.write(f"🔸 Vapeur CEFT 1600 (VP2) = {VP2_CEFT:.2f} t/h")
+        st.write(f"🔸 Vapeur consommée par DCHs = {vapeur_consommée:.2f} t/h")
+        st.success(f"🔹 Débit de vapeur arrivant au condenseur = {vapeur_condenseur:.2f} t/h")
+
+        # Enregistrement
+        st.session_state["resultats_machines"]["Condenseur"] = {
+            "Débit vapeur entrante": vapeur_condenseur
+        }
+
+        if abs(vapeur_condenseur) < 0.1:
+            st.warning("💡 Le débit est très faible, ce qui confirme que toute la vapeur a été consommée.")
+
+    except Exception as e:
+        st.error(f"Erreur dans le calcul du condenseur : {e}")
+
 
 ##############################################################################
 def bilan_vkt():
@@ -697,16 +752,17 @@ def bilan_vkt():
     st.header("Bilan de la tour de cristallisation VKT")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
     
-    h_VP1 = st.number_input("Enthalpie vapeur VP1", min_value=0.0)
-    h_CDS = st.number_input("Enthalpie des condensats", min_value=0.0)
-    h_Eevap = st.number_input("Enthalpie de l'eau évaporée", min_value=0.0)
+    h_VP1 = st.number_input("Enthalpie vapeur VP1 (kJ/kg)", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+    h_Eevap = st.number_input("Enthalpie de l'eau évaporée (kJ/kg)", min_value=0.0)
 
-    T_SC = st.number_input("Température du sirop concentré entrant", min_value=0.0)
+    T_SC = st.number_input("Température du sirop concentré entrant (°C)", min_value=0.0)
     Brix_SC = st.number_input("Brix du sirop concentré entrant (%)", min_value=0.0, max_value=100.0)
-    
-    V_MC = st.number_input("Volume sortant de la masse cuite ", min_value=0.0)
-    T_MC = st.number_input("Température de la masse cuite", min_value=0.0)
+
+    V_MC = st.number_input("Volume sortant de la masse cuite (m³)", min_value=0.0)
+    T_MC = st.number_input("Température de la masse cuite (°C)", min_value=0.0)
     Brix_MC = st.number_input("Brix de la masse cuite (%)", min_value=0.0, max_value=100.0)
+
    
 
     if st.button("Calculer VP1 - VKT"):
@@ -754,9 +810,9 @@ def bilan_CMV():
     st.header("Bilan du compresseur mécanique à vapeur CMV")
     st.info("Saisissez les données des entrées et sorties de votre machine : Enthalpies  et travail ")
 
-    W_Vvkt =st.number_input("Travail des CMV", min_value=0.0)
-    h_Vvkt = st.number_input("Enthalpie de la vapeur sortante de la VKT", min_value=0.0)
-    h_VPcomp = st.number_input("Enthalpie de la vapeur comprimée", min_value=0.0)
+    W_Vvkt =st.number_input("Travail des CMV (KW)", min_value=0.0)
+    h_Vvkt = st.number_input("Enthalpie de la vapeur sortante de la VKT (KJ/Kg)", min_value=0.0)
+    h_VPcomp = st.number_input("Enthalpie de la vapeur comprimée (KJ/Kg)", min_value=0.0)
 
     if st.button("Calculer Vvkt - CMV"):
         try:
@@ -783,18 +839,18 @@ def bilan_cuite710():
     st.header("Bilan de la cuite 710 HL")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
 
-    h_VPT = st.number_input("Enthalpie vapeur VPT", min_value=0.0)
-    h_CDS = st.number_input("Enthalpie condensats", min_value=0.0)
-    h_Eevap = st.number_input("Enthalpie eau évaporée", min_value=0.0)
+    h_VPT = st.number_input("Enthalpie vapeur VPT (kJ/kg)", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+    h_Eevap = st.number_input("Enthalpie de l'eau évaporée (kJ/kg)", min_value=0.0)
 
-   
-    T_SC = st.number_input("Température SC", min_value=0.0)
-    Brix_SC = st.number_input("Brix SC (%)", min_value=0.0, max_value=100.0)
-    
+    T_SC = st.number_input("Température du sirop concentré entrant (°C)", min_value=0.0)
+    Brix_SC = st.number_input("Brix du sirop concentré entrant (%)", min_value=0.0, max_value=100.0)
 
-    V_MC = st.number_input("Volume sortant de la masse cuite MC", min_value=0.0, max_value=1000.0)
-    T_MC = st.number_input("Température MC", min_value=0.0)
-    Brix_MC = st.number_input("Brix MC (%)", min_value=0.0, max_value=100.0)
+    V_MC = st.number_input("Volume sortant de la masse cuite (m³)", min_value=0.0)
+    T_MC = st.number_input("Température de la masse cuite (°C)", min_value=0.0)
+    Brix_MC = st.number_input("Brix de la masse cuite (%)", min_value=0.0, max_value=100.0)
+
+
    
 
     if st.button("Calculer VPT - Cuite 710HL"):
@@ -841,18 +897,17 @@ def bilan_cuite550():
     st.header("Bilan de la cuite 550 HL")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
 
-    h_VPT = st.number_input("Enthalpie vapeur VPT", min_value=0.0)
-    h_CDS = st.number_input("Enthalpie condensats", min_value=0.0)
-    h_Eevap = st.number_input("Enthalpie eau évaporée", min_value=0.0)
+    h_VPT = st.number_input("Enthalpie vapeur VPT (kJ/kg)", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+    h_Eevap = st.number_input("Enthalpie de l'eau évaporée (kJ/kg)", min_value=0.0)
 
-   
-    T_SC = st.number_input("Température SC", min_value=0.0)
-    Brix_SC = st.number_input("Brix SC (%)", min_value=0.0, max_value=100.0)
-    
+    T_SC = st.number_input("Température du sirop concentré entrant (°C)", min_value=0.0)
+    Brix_SC = st.number_input("Brix du sirop concentré entrant (%)", min_value=0.0, max_value=100.0)
 
-    V_MC = st.number_input("Volume sortant de la masse cuite MC", min_value=0.0, max_value=1000.0)
-    T_MC = st.number_input("Température MC", min_value=0.0)
-    Brix_MC = st.number_input("Brix MC (%)", min_value=0.0, max_value=100.0)
+    V_MC = st.number_input("Volume sortant de la masse cuite (m³)", min_value=0.0)
+    T_MC = st.number_input("Température de la masse cuite (°C)", min_value=0.0)
+    Brix_MC = st.number_input("Brix de la masse cuite (%)", min_value=0.0, max_value=100.0)
+
    
 
     if st.button("Calculer VPT - Cuite 550HL"):
@@ -901,18 +956,17 @@ def bilan_cuiteR2():
     st.header("Bilan de la cuite R2")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
 
-    h_VPT = st.number_input("Enthalpie vapeur VPT", min_value=0.0)
-    h_CDS = st.number_input("Enthalpie condensats", min_value=0.0)
-    h_Eevap = st.number_input("Enthalpie eau évaporée", min_value=0.0)
+    h_VPT = st.number_input("Enthalpie vapeur VPT (kJ/kg)", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+    h_Eevap = st.number_input("Enthalpie de l'eau évaporée (kJ/kg)", min_value=0.0)
 
-   
-    T_SC = st.number_input("Température SC", min_value=0.0)
-    Brix_SC = st.number_input("Brix SC (%)", min_value=0.0, max_value=100.0)
-    
+    T_SC = st.number_input("Température du sirop concentré entrant (°C)", min_value=0.0)
+    Brix_SC = st.number_input("Brix du sirop concentré entrant (%)", min_value=0.0, max_value=100.0)
 
-    V_MC = st.number_input("Volume sortant de la masse cuite MC", min_value=0.0)
-    T_MC = st.number_input("Température MC", min_value=0.0)
-    Brix_MC = st.number_input("Brix MC (%)", min_value=0.0, max_value=100.0)
+    V_MC = st.number_input("Volume sortant de la masse cuite (m³)", min_value=0.0)
+    T_MC = st.number_input("Température de la masse cuite (°C)", min_value=0.0)
+    Brix_MC = st.number_input("Brix de la masse cuite (%)", min_value=0.0, max_value=100.0)
+
    
 
     if st.button("Calculer VPT - Cuite R2"):
@@ -960,22 +1014,25 @@ def bilan_ECH_sécheur():
     st.header("Bilan de l'échangeur sécheur")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, débit volumiques")
 
-    h_VPT = st.number_input("Enthalpie vapeur VPT", min_value=0.0)
+    h_VPT = st.number_input("Enthalpie vapeur VPT (kJ/kg)", min_value=0.0)
 
-    m_SHe = st.number_input("Débit du sucre non séché", min_value=0.0)
-    T_SHe = st.number_input("Température du sucre non séché", min_value=0.0)
+    Q_SHe = st.number_input("Débit du sucre non séché (m³/h)", min_value=0.0)
+    T_SHe = st.number_input("Température du sucre non séché (°C)", min_value=0.0)
     Brix_SHe = st.number_input("Brix du sucre non séché (%)", min_value=0.0, max_value=100.0, value=100.0)
 
-    m_SHs = st.number_input("Débit du sucre séché", min_value=0.0)
-    T_SHs = st.number_input("Température du sucre séché", min_value=0.0)
-    Brix_SHs = st.number_input("Brix du sucre séché (%)", min_value=0.0, max_value=100.0,value=100.0)
+    Q_SHs = st.number_input("Débit du sucre séché (m³/h)", min_value=0.0)
+    T_SHs = st.number_input("Température du sucre séché (°C)", min_value=0.0)
+    Brix_SHs = st.number_input("Brix du sucre séché (%)", min_value=0.0, max_value=100.0, value=100.0)
 
-    h_CDS = st.number_input("Enthalpie condensats ", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+
 
     if st.button("Calculer VPT - ECH Sécheur"):
         try:
             Cp_SHs = Cp(Brix_SHs)
             Cp_SHe = Cp(Brix_SHe)
+            m_SHs=Q_SHs * D(Brix_SHs)
+            m_SHe=Q_SHe * D(Brix_SHe)
 
             numerator = m_SHs * Cp_SHs * T_SHs - m_SHe * Cp_SHe * T_SHe
             denominator = h_VPT - h_CDS
@@ -1005,16 +1062,17 @@ def bilan_cuiteR31():
     st.header("Bilan de la cuite R31")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
 
-    h_VPc = st.number_input("Enthalpie de la vapeur compressée", min_value=0.0)
-    h_CDS = st.number_input("Enthalpie condensats", min_value=0.0)
-    h_Eevap = st.number_input("Enthalpie eau évaporée", min_value=0.0)
+    h_VPc = st.number_input("Enthalpie de la vapeur compressée (kJ/kg)", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+    h_Eevap = st.number_input("Enthalpie de l'eau évaporée (kJ/kg)", min_value=0.0)
 
     T_MCvkt = st.session_state["resultats_machines"]["VKT"].get("T_MC", 0.0)
-    Brix_MCvkt = st.number_input("Brix de la masse cuite issue de la VKT  (%)", min_value=0.0, max_value=100.0)
+    Brix_MCvkt = st.number_input("Brix de la masse cuite issue de la VKT (%)", min_value=0.0, max_value=100.0)
 
-    V_MCs = st.number_input("Volume de la masse cuite sortante MCs", min_value=0.0)
-    T_MCs = st.number_input("Température de la masse cuite sortante MCs", min_value=0.0)
+    V_MCs = st.number_input("Volume de la masse cuite sortante MCs (m³)", min_value=0.0)
+    T_MCs = st.number_input("Température de la masse cuite sortante MCs (°C)", min_value=0.0)
     Brix_MCs = st.number_input("Brix de la masse cuite sortante MCs (%)", min_value=0.0, max_value=100.0)
+
 
     if st.button("Calculer VPc - Cuite R31"):
         try:
@@ -1062,16 +1120,17 @@ def bilan_cuiteR32():
     st.header("Bilan de la cuite R32")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
 
-    h_VPc = st.number_input("Enthalpie de la vapeur compressée", min_value=0.0)
-    h_CDS = st.number_input("Enthalpie condensats", min_value=0.0)
-    h_Eevap = st.number_input("Enthalpie eau évaporée", min_value=0.0)
+    h_VPc = st.number_input("Enthalpie de la vapeur compressée (kJ/kg)", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+    h_Eevap = st.number_input("Enthalpie de l'eau évaporée (kJ/kg)", min_value=0.0)
 
-    T_MCR31= st.number_input("Température de la masse cuite issue de la cuite R31 ", min_value=0.0)
-    Brix_MCR31 = st.number_input("Brix de la masse cuite issue de la R31  (%)", min_value=0.0, max_value=100.0)
+    T_MCR31 = st.number_input("Température de la masse cuite issue de la cuite R31 (°C)", min_value=0.0)
+    Brix_MCR31 = st.number_input("Brix de la masse cuite issue de la R31 (%)", min_value=0.0, max_value=100.0)
 
-    V_MCR32= st.number_input("Volume de la masse cuite sortante", min_value=0.0)
-    T_MCR32= st.number_input("Température de la masse cuite sortante ", min_value=0.0)
+    V_MCR32 = st.number_input("Volume de la masse cuite sortante (m³)", min_value=0.0)
+    T_MCR32 = st.number_input("Température de la masse cuite sortante (°C)", min_value=0.0)
     Brix_MCR32 = st.number_input("Brix de la masse cuite sortante (%)", min_value=0.0, max_value=100.0)
+
 
     if st.button("Calculer VPc - Cuite R32"):
         try:
@@ -1117,15 +1176,15 @@ def bilan_cuiteR4():
     st.header("Bilan de la cuite R4")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
 
-    h_VPc = st.number_input("Enthalpie de la vapeur compressée", min_value=0.0)
-    h_CDS = st.number_input("Enthalpie condensats", min_value=0.0)
-    h_Eevap = st.number_input("Enthalpie eau évaporée", min_value=0.0)
+    h_VPc = st.number_input("Enthalpie de la vapeur compressée (kJ/kg)", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+    h_Eevap = st.number_input("Enthalpie de l'eau évaporée (kJ/kg)", min_value=0.0)
 
-    T_MCR32= st.number_input("Température de la masse cuite issue de la cuite R32 ", min_value=0.0)
-    Brix_MCR32= st.number_input("Brix de la masse cuite issue de la R32  (%)", min_value=0.0, max_value=100.0)
+    T_MCR32 = st.number_input("Température de la masse cuite issue de la cuite R32 (°C)", min_value=0.0)
+    Brix_MCR32 = st.number_input("Brix de la masse cuite issue de la R32 (%)", min_value=0.0, max_value=100.0)
 
-    V_MCR4= st.number_input("Volume de la masse cuite sortante", min_value=0.0)
-    T_MCR4= st.number_input("Température de la masse cuite sortante ", min_value=0.0)
+    V_MCR4 = st.number_input("Volume de la masse cuite sortante (m³)", min_value=0.0)
+    T_MCR4 = st.number_input("Température de la masse cuite sortante (°C)", min_value=0.0)
     Brix_MCR4 = st.number_input("Brix de la masse cuite sortante (%)", min_value=0.0, max_value=100.0)
 
     if st.button("Calculer VPc - Cuite R4"):
@@ -1172,16 +1231,17 @@ def bilan_cuiteA():
     st.header("Bilan de la cuite A")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
 
-    h_VPc = st.number_input("Enthalpie de la vapeur compressée", min_value=0.0)
-    h_CDS = st.number_input("Enthalpie condensats", min_value=0.0)
-    h_Eevap = st.number_input("Enthalpie eau évaporée", min_value=0.0)
+    h_VPc = st.number_input("Enthalpie de la vapeur compressée (kJ/kg)", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+    h_Eevap = st.number_input("Enthalpie de l'eau évaporée (kJ/kg)", min_value=0.0)
 
-    T_MCR4= st.number_input("Température de la masse cuite issue de la cuite R4 ", min_value=0.0)
-    Brix_MCR4= st.number_input("Brix de la masse cuite issue de la R4 (%)", min_value=0.0, max_value=100.0)
+    T_MCR4 = st.number_input("Température de la masse cuite issue de la cuite R4 (°C)", min_value=0.0)
+    Brix_MCR4 = st.number_input("Brix de la masse cuite issue de la R4 (%)", min_value=0.0, max_value=100.0)
 
-    V_MCA= st.number_input("Volume de la masse cuite sortante", min_value=0.0)
-    T_MCA= st.number_input("Température de la masse cuite sortante ", min_value=0.0)
-    Brix_MCA= st.number_input("Brix de la masse cuite sortante (%)", min_value=0.0, max_value=100.0)
+    V_MCA = st.number_input("Volume de la masse cuite sortante (m³)", min_value=0.0)
+    T_MCA = st.number_input("Température de la masse cuite sortante (°C)", min_value=0.0)
+    Brix_MCA = st.number_input("Brix de la masse cuite sortante (%)", min_value=0.0, max_value=100.0)
+
 
     if st.button("Calculer VPc - Cuite A"):
         try:
@@ -1228,16 +1288,17 @@ def bilan_cuiteB():
     st.header("Bilan de la cuite B")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
 
-    h_VPc = st.number_input("Enthalpie de la vapeur compressée", min_value=0.0)
-    h_CDS = st.number_input("Enthalpie condensats", min_value=0.0)
-    h_Eevap = st.number_input("Enthalpie eau évaporée", min_value=0.0)
+    h_VPc = st.number_input("Enthalpie de la vapeur compressée (kJ/kg)", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+    h_Eevap = st.number_input("Enthalpie de l'eau évaporée (kJ/kg)", min_value=0.0)
 
-    T_MCA= st.number_input("Température de la masse cuite issue de la cuite A ", min_value=0.0)
-    Brix_MCA= st.number_input("Brix de la masse cuite issue de la A (%)", min_value=0.0, max_value=100.0)
+    T_MCA = st.number_input("Température de la masse cuite issue de la cuite A (°C)", min_value=0.0)
+    Brix_MCA = st.number_input("Brix de la masse cuite issue de la A (%)", min_value=0.0, max_value=100.0)
 
-    V_MCB= st.number_input("Volume de la masse cuite sortante", min_value=0.0)
-    T_MCB= st.number_input("Température de la masse cuite sortante ", min_value=0.0)
-    Brix_MCB= st.number_input("Brix de la masse cuite sortante (%)", min_value=0.0, max_value=100.0)
+    V_MCB = st.number_input("Volume de la masse cuite sortante (m³)", min_value=0.0)
+    T_MCB = st.number_input("Température de la masse cuite sortante (°C)", min_value=0.0)
+    Brix_MCB = st.number_input("Brix de la masse cuite sortante (%)", min_value=0.0, max_value=100.0)
+
 
     if st.button("Calculer VPc - Cuite B"):
         try:
@@ -1283,16 +1344,17 @@ def bilan_cuiteC():
     st.header("Bilan de la cuite C")
     st.info("Saisissez les données des entrées et sorties de votre machine : Températures, Brix, enthalpies, volume entrant, débit volumiques")
 
-    h_VPc = st.number_input("Enthalpie de la vapeur compressée", min_value=0.0)
-    h_CDS = st.number_input("Enthalpie condensats", min_value=0.0)
-    h_Eevap = st.number_input("Enthalpie eau évaporée", min_value=0.0)
+    h_VPc = st.number_input("Enthalpie de la vapeur compressée (kJ/kg)", min_value=0.0)
+    h_CDS = st.number_input("Enthalpie des condensats (kJ/kg)", min_value=0.0)
+    h_Eevap = st.number_input("Enthalpie de l'eau évaporée (kJ/kg)", min_value=0.0)
 
-    T_MCB= st.number_input("Température de la masse cuite issue de la cuite B ", min_value=0.0)
-    Brix_MCB= st.number_input("Brix de la masse cuite issue de la B (%)", min_value=0.0, max_value=100.0)
+    T_MCB = st.number_input("Température de la masse cuite issue de la cuite B (°C)", min_value=0.0)
+    Brix_MCB = st.number_input("Brix de la masse cuite issue de la B (%)", min_value=0.0, max_value=100.0)
 
-    V_MCC= st.number_input("Volume de la masse cuite sortante", min_value=0.0)
-    T_MCC= st.number_input("Température de la masse cuite sortante ", min_value=0.0)
-    Brix_MCC= st.number_input("Brix de la masse cuite sortante (%)", min_value=0.0, max_value=100.0)
+    V_MCC = st.number_input("Volume de la masse cuite sortante (m³)", min_value=0.0)
+    T_MCC = st.number_input("Température de la masse cuite sortante (°C)", min_value=0.0)
+    Brix_MCC = st.number_input("Brix de la masse cuite sortante (%)", min_value=0.0, max_value=100.0)
+
 
     if st.button("Calculer VPc - Cuite B"):
         try:
@@ -1382,6 +1444,7 @@ bilan_machines = {
     "DCH Fondoir F1" : bilan_dch_f1,
     "DCH Fondoir F2" : bilan_dch_f2,
     "DCH des eaux sucrées ES": bilan_dch_ES,
+    "Condenseur": bilan_condenseur,
     "VKT": bilan_vkt,
     "Cuite 710HL" : bilan_cuite710,
     "Cuite 550HL" : bilan_cuite550,
