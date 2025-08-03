@@ -128,7 +128,7 @@ st.markdown(f"""
 # Liste des machines
 machines = [
     "CEFT 2400", "CEFT 1300", "Bouilleur", "ECH Bouilleur",
-    "CEFT 1600", "ECH 2400 (VP1)","ECH 2400 (VPT)", "ECH EA", "ECH ED",
+    "CEFT 1600", "ECH 2400", "ECH EA", "ECH ED",
     "DCH Fondoir F0", "DCH Fondoir F1", "DCH Fondoir F2", "DCH des eaux sucrées ES", "Condenseur",
     "VKT", "CMV","Station de carbonatation","Cuite 710HL", "Cuite 550HL", "R2", "ECH sécheur", "R31", "R32", "R4", "A", "B", "C","Divers machines restantes"
 ]
@@ -331,7 +331,6 @@ def bilan_ceft_1600():
     T_SC2 = st.number_input("Température SC2 (°C)", min_value=0.0)
     Brix_SC2 = st.number_input("Brix SC2 (%)", min_value=0.0, max_value=100.0)
 
-    Q_SCf = st.number_input("Débit du sirop concentré sortant SCf (m³/h)", min_value=0.0)
     T_SCf = st.number_input("Température SCf (°C)", min_value=0.0)
     Brix_SCf = st.number_input("Brix SCf (%)", min_value=0.0, max_value=100.0)
     
@@ -341,8 +340,18 @@ def bilan_ceft_1600():
         try:
             Cp_SC2 = Cp(Brix_SC2)
             Cp_SCf = Cp(Brix_SCf)
+            Q_SCf = (Q_SC2*Brix_SC2)/ Brix_SCf
             m_SC2=Q_SC2 * D(Brix_SC2)
-            m_SCf=(m_SC2 * Brix_SC2)/Brix_SCf
+            m_SCf=Q_SCf * D(Brix_SCf)
+
+            # Récupérer ṁ_VP1' et ṁ_VP1'' des autres bilans
+            try:
+                m_VP1p = st.session_state["resultats_machines"]["CEFT 2400"]["VP1'"]
+                m_VP1pp = st.session_state["resultats_machines"]["CEFT 1300"]["VP1''"]
+                
+            except KeyError:
+                st.warning("⚠️ Impossible de récupérer ṁ_VP1' ou ṁ_VP1'' — calcule d'abord les bilans CEFT 2400 et CEFT 1300.")
+                return
 
             m_VP2 = m_SC2 - m_SCf
             numerator = m_VP2 * h_VP2 + m_SCf * Cp_SCf * T_SCf - m_SC2 * Cp_SC2 * T_SC2
@@ -356,6 +365,7 @@ def bilan_ceft_1600():
 
             st.success(f"🔹Débit vapeur entrante VP1 calculé = {m_VP1:.2f} t/h")
             st.success(f"🔹Débit vapeur sortante VP2 calculé = {m_VP2:.2f} t/h")
+            st.success(f"🔹Débit du sirop sortant SCf = {Q_SCf:.2f} m³/h = {m_SCf:.2f} t/h" )
             st.success(f"🔹Débit des condensats= {m_VP1:.2f} t/h")
 
             # Enregistrement
@@ -365,9 +375,33 @@ def bilan_ceft_1600():
                 "CDS": m_VP1,    
             }        
 
+            # Appel immédiat à la comparaison après le calcul
+            
+            comparer_vp1()
+
 
         except Exception as e:
             st.error(f"Erreur dans le calcul : {e}")
+
+def comparer_vp1():
+    st.subheader("📐 Comparaison entre VP1 calculé et la somme VP1'+VP1''")
+
+    try:
+        VP1_calcule = st.session_state["resultats_machines"]["CEFT 1600"]["VP1"]
+        VP1_p = st.session_state["resultats_machines"]["CEFT 2400"]["VP1'"]
+        VP1_pp = st.session_state["resultats_machines"]["CEFT 1300"]["VP1''"]
+
+        VP1_ref = VP1_p + VP1_pp
+        ecart = abs(VP1_calcule - VP1_ref)
+
+
+        st.write(f"🔹 VP1 calculé = {VP1_calcule:.2f} t/h")
+        st.write(f"🔹 VP1' + VP1'' = {VP1_ref:.2f} t/h")
+        st.write(f"📏 Écart = {ecart:.2f} t/h")
+
+
+    except KeyError:
+        st.error("❌ Impossible de faire la comparaison — certaines valeurs manquent.")
 
 def bilan_echangeur_EA():
     st.header("Bilan de l'échangeur d'eaux adoucies ")
@@ -456,84 +490,54 @@ def bilan_echangeur_ED():
 
 
 
-def bilan_echangeur_2400_VP1():
+def bilan_echangeur_2400():
     st.header("Bilan de l'échangeur 2400 ")
     st.info("Saisissez les données des entrées et sorties de votre machine : Enthalpies, Températures, coefficient d'échange et surfaces d'échange.")
     
         # Saisie des paramètres
     H = st.number_input("Coefficient d'échange thermique H (W/m²·K)", min_value=0.0)
     S1 = st.number_input("Surface d'échange avec la VP1 (m²)", min_value=0.0, value=100.0)
-    T_sn = st.number_input("Température du sirop entrant (non chauffé) (°C)", min_value=0.0)
-    T_s = st.number_input("Température sirop sortant (chauffé) (°C)", min_value=0.0)
-
-    T_VP1 = st.number_input("Température de la vapeur VP1  (°C)", min_value=0.0)
-    
-    h_VP1 = st.number_input("Enthalpie vapeur VP1  (kJ/kg)", min_value=0.0)
-    h_CDS1 = st.number_input("Enthalpie des condensats VP1 (kJ/kg)", min_value=0.0)
-
-    # Calcul du débit massique de vapeur
-    if st.button("Calculer débit vapeur VP1 - ECH 2400"):
-        try:
-            delta_T11 = T_VP1 - T_sn
-            delta_T21 = T_VP1 - T_s
-
-            if delta_T11 > 0 and delta_T21 > 0 and (delta_T11 != delta_T21) :
-                LMTD1 = (delta_T11 - delta_T21) /(math.log(delta_T11 / delta_T21))
-                m_VP1 = ((H * S1 * LMTD1) / (h_VP1 - h_CDS1))/3600
-            
-
-                st.success(f"🔹Débit vapeur entrante VP1 calculé = {m_VP1:.2f} t/h")
-                st.success(f"🔹Débit des condensats VP1 = {m_VP1:.2f} t/h")
-
-                # Enregistrement des résultats
-                st.session_state["resultats_machines"]["ECH 2400 (VP1)"] = {
-                    "VP1": m_VP1,
-                    "CDS(VP1)": m_VP1,
-
-                }
-           
-        except ZeroDivisionError:
-            st.error("Erreur de division par zéro dans le calcul du logarithme.")
-        except Exception as e:
-            st.error(f"Erreur inattendue : {e}")
-
-#########################################################################################################
-def bilan_echangeur_2400_VPT():
-    st.header("Bilan de l'échangeur 2400 pour la vapeur VPT")
-    st.info("Saisissez les données des entrées et sorties de votre machine : Enthalpies, Températures, coefficient d'échange et surfaces d'échange.")
-    
-        # Saisie des paramètres
-    H = st.number_input("Coefficient d'échange thermique H (W/m²·K)", min_value=0.0)
     S2 = st.number_input("Surface d'échange avec la VPT (m²)", min_value=0.0, value=300.0)
     T_sn = st.number_input("Température du sirop entrant (non chauffé) (°C)", min_value=0.0)
     T_s = st.number_input("Température sirop sortant (chauffé) (°C)", min_value=0.0)
 
+    T_VP1 = st.number_input("Température de la vapeur VP1  (°C)", min_value=0.0)
     T_VPT = st.number_input("Température de la vapeur VPT  (°C)", min_value=0.0)
     
+    h_VP1 = st.number_input("Enthalpie vapeur VP1  (kJ/kg)", min_value=0.0)
+    h_CDS1 = st.number_input("Enthalpie des condensats VP1 (kJ/kg)", min_value=0.0)
     h_VPT = st.number_input("Enthalpie vapeur VPT  (kJ/kg)", min_value=0.0)
     h_CDST = st.number_input("Enthalpie des condensats VPT(kJ/kg)", min_value=0.0)
 
     # Calcul du débit massique de vapeur
-    if st.button("Calculer débit vapeur VPT - ECH 2400 (VPT)"):
+    if st.button("Calculer débit vapeur VP1 & VPT - ECH 2400"):
         try:
+            delta_T11 = T_VP1 - T_sn
+            delta_T21 = T_VP1 - T_s
             delta_T1T = T_VPT - T_sn
             delta_T2T = T_VPT - T_s
 
-            if  delta_T1T > 0 and delta_T2T > 0 and (delta_T1T != delta_T2T) :
-
+            if delta_T11 > 0 and delta_T21 > 0 and (delta_T11 != delta_T21) and delta_T1T > 0 and delta_T2T > 0 and (delta_T1T != delta_T2T) :
+                LMTD1 = (delta_T11 - delta_T21) /(math.log(delta_T11 / delta_T21))
                 LMTDT = (delta_T1T - delta_T2T) / (math.log(delta_T1T / delta_T2T))
+                m_VP1 = ((H * S1 * LMTD1) / (h_VP1 - h_CDS1))/3600
                 m_VPT = ((H * S2 * LMTDT) / (h_VPT - h_CDST))/3600
             
-                st.success(f"🔹Débit vapeur entrante VPT calculé = {m_VPT:.2f} t/h")
 
+                st.success(f"🔹Débit vapeur entrante VP1 calculé = {m_VP1:.2f} t/h")
+                st.success(f"🔹Débit vapeur entrante VPT calculé = {m_VPT:.2f} t/h")
+                st.success(f"🔹Débit des condensats VP1 = {m_VP1:.2f} t/h")
                 st.success(f"🔹Débit des condensats VPT = {m_VPT:.2f} t/h")
 
                 # Enregistrement des résultats
                 st.session_state["resultats_machines"]["ECH 2400"] = {
+                    "VP1": m_VP1,
                     "VPT": m_VPT,
+                    "CDS(VP1)": m_VP1,
                     "CDS(VPT)": m_VPT
                 }
-            
+            else:
+                st.warning("Vérifiez que Température(VP1) > Température(eau) et Température(VP1) > Température(eau déminéralisée), et que Température(eau) ≠ Température(eau démineralisée).")
         except ZeroDivisionError:
             st.error("Erreur de division par zéro dans le calcul du logarithme.")
         except Exception as e:
@@ -1521,8 +1525,7 @@ bilan_machines = {
     "CEFT 1600": bilan_ceft_1600,
     "ECH EA" : bilan_echangeur_EA,
     "ECH ED" : bilan_echangeur_ED,
-    "ECH 2400 (VP1)" : bilan_echangeur_2400_VP1,
-    "ECH 2400 (VPT)" : bilan_echangeur_2400_VPT,
+    "ECH 2400" : bilan_echangeur_2400,
     "DCH Fondoir F0" : bilan_dch_f0,
     "DCH Fondoir F1" : bilan_dch_f1,
     "DCH Fondoir F2" : bilan_dch_f2,
@@ -1553,6 +1556,8 @@ if selected_machine:
     else:
         st.info("Pas encore de bilan défini pour cette machine.")
 
+if "CEFT 1600" in st.session_state["resultats_machines"]:
+            comparer_vp1()
 
 # ---- Résultats cumulés ----
 st.markdown("---")
@@ -1591,7 +1596,7 @@ def regroupement_par_vapeur(resultats):
         "ECH ED": "VP1",
         "DCH Fondoir F2": "VP1",
         "VKT": "VP1",
-        "ECH 2400 (VP1)": "VP1",
+        "ECH 2400": "VPT",
         "DCH Fondoir F0": "VP2",
         "DCH Fondoir F1": "VP2",
         "DCH des eaux sucrées ES": "VP2",
@@ -1599,7 +1604,6 @@ def regroupement_par_vapeur(resultats):
         "Cuite 710HL": "VPT",
         "Cuite 550HL": "VPT",
         "R2": "VPT",
-        "ECH 2400 (VPT)": "VPT",
         "Echangeur sécheur" : "VPT",
         "Station de carbonatation" :"VPT",
         "R31": "Vvkt",
@@ -1672,38 +1676,13 @@ groupes = regroupement_par_vapeur(st.session_state["resultats_machines"])
 afficher_pie_charts_par_vapeur(groupes)
 
 def creer_pie_chart(labels, sizes, title):
-    import matplotlib.pyplot as plt
-    from io import BytesIO
+    fig, ax = plt.subplots()
+    ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
+    ax.axis('equal')
+    plt.title(title)
 
-    # Palette auto (20 couleurs max)
-    cmap = plt.get_cmap("tab20")
-    colors = [cmap(i) for i in range(len(labels))]
-
-    fig, ax = plt.subplots(figsize=(5, 5))
-    
-    wedges, texts, autotexts = ax.pie(
-        sizes,
-        colors=colors,
-        autopct='%1.1f%%',
-        startangle=90,
-        pctdistance=0.8,
-        textprops={'fontsize': 8}
-    )
-
-    # Légende à droite si trop de parts
-    if len(labels) > 4:
-        ax.legend(wedges, labels, title="Machines", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
-    else:
-        # Sinon, intégrer dans la pie
-        for i, txt in enumerate(texts):
-            txt.set_fontsize(8)
-
-    ax.set_title(title, fontsize=10)
-    ax.axis('equal')  # Cercle parfait
-    plt.tight_layout()
-
-    buf = BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
     plt.close(fig)
     buf.seek(0)
     return buf
