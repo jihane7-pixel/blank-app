@@ -1660,13 +1660,16 @@ def bilan_degraissage_cuiteR31_R32_R33():
                 return
 
             m_VPT_R31= Q / h_VPT  # (kg)
+            m_VPT_3x=m_VPT_R31*3
+
         
             # Résultats
-            st.success(f"🔹 Débit vapeur VPT = {3*m_VPT_R31:.2f} t/h")
+            st.success(f"🔹 Débit vapeur VPT = {m_VPT_3x:.2f} t/h")
 
             # Sauvegarde dans la session
             st.session_state["resultats_machines"]["Dégraissage des cuites R31, R32 & R33"] = {
-                "Débit vapeur (t/h)": 3*m_VPT_R31,
+               "Débit vapeur (t/h) d'une seule cuite" :m_VPT_R31,
+                "Débit vapeur (t/h)": m_VPT_3x
             }
 
         except Exception as e:
