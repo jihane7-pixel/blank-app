@@ -1662,11 +1662,11 @@ def bilan_degraissage_cuiteR31_R32_R33():
             m_VPT_R31= Q / h_VPT  # (kg)
         
             # Résultats
-            st.success(f"🔹 Débit vapeur VPT = {m_VPT_R31:.2f} t/h")
+            st.success(f"🔹 Débit vapeur VPT = {3*m_VPT_R31:.2f} t/h")
 
             # Sauvegarde dans la session
             st.session_state["resultats_machines"]["Dégraissage des cuites R31, R32 & R33"] = {
-                "Débit vapeur (t/h)": m_VPT_R31,
+                "Débit vapeur (t/h)": 3*m_VPT_R31,
             }
 
         except Exception as e:
@@ -1966,7 +1966,7 @@ bilan_machines = {
     "Dégraissage de la cuite A" : bilan_degraissage_cuiteA,
     "Dégraissage de la cuite B" :bilan_degraissage_cuiteB,
     "Dégraissage de la cuite C" : bilan_degraissage_cuiteC,
-    "Dégraissage de la cuite R31, R32 & R33" : bilan_degraissage_cuiteR31_R32_R33,
+    "Dégraissage des cuites R31, R32 & R33" : bilan_degraissage_cuiteR31_R32_R33,
 
     "Échappement de la VPT & Gazs incondensables" :bilan_gazsIncondensables,
     "Échappement de la VPT & Gazs incondensables des cuites 710HL & R2" :bilan_gazsIncondensables_cuiteR2_710HL,
