@@ -1895,7 +1895,7 @@ def bilan_ECH_commune_carbonatée():
             st.success(f"🔹Débit vapeur entrante VPT calculé = {m_VPT:.2f} t/h")
 
             # Enregistrement dans session_state
-            st.session_state["resultats_machines"]["ECH commune carbonatée"] = {
+            st.session_state["resultats_machines"]["ECH Commune Carbonatée"] = {
                 "VPT": m_VPT,
                 "CDS": m_CDS
             }
