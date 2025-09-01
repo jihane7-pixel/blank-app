@@ -1696,7 +1696,7 @@ def bilan_gazsIncondensables():
         st.success(f"🌍 Débit global total = {debit_total:.3f} t/h")
 
         # Sauvegarde dans la session
-        st.session_state["resultats_machines"]["Bilan global gazs incondensables"] = {
+        st.session_state["resultats_machines"]["Échappement de la VPT & Gazs incondensables"] = {
             "Débit corrigé (710HL+R2) (t/h)": debit_R2_710_corrige,
             "Débit cuite 550HL (t/h)": debit_550HL,
             "Débit global total (t/h)": debit_total,
@@ -1815,7 +1815,7 @@ def bilan_gazsIncondensables_cuite550HL():
             st.error(f"Erreur dans le calcul : {e}")
 ##################################################################################################### 
 def bilan_soufflage_filtre():
-    st.header("Calcul du débit vapeur VPT pour les filtres DIASTAR")
+    st.header("Calcul du débit de la VPT pour les filtres DIASTAR")
     st.info("Ce module estime la consommation de vapeur des filtres DIASTAR en fonction des capacités, du nombre de filtres et de la densité de la vapeur.")
 
     # Paramètres des filtres
@@ -1848,7 +1848,7 @@ def bilan_soufflage_filtre():
             st.success(f"🔹 Débit massique vapeur VPT = {m_VPT:.4f} t/h")
 
             # Sauvegarde session
-            st.session_state["resultats_machines"]["DIASTAR"] = {
+            st.session_state["resultats_machines"]["Soufflage des filtres"] = {
                 "Volume total (m³/jour)": V_total,
                 "Débit volumique (m³/h)": Q_hour,
                 "Débit massique VPT (t/h)": m_VPT,
