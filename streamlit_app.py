@@ -2213,15 +2213,24 @@ def generer_pdf_resultats():
             pdf.ln(2)
 
             # Récupérer la valeur pour cette vapeur pour le pie chart
-            # Récupérer la valeur la plus représentative pour le pie chart
-            valeur_machine_pour_vapeur = (
-                resultats.get("Débit total (t/h)") or
-                resultats.get("Débit global (t/h)") or
-                resultats.get("Débit (t/h)") or
-                0
-            )
+            # Chercher la valeur la plus représentative pour le pie chart
+            valeur_machine_pour_vapeur = None
 
-            if valeur_machine_pour_vapeur > 0:
+            # On teste plusieurs clés connues en priorité
+            for cle in ["Débit total (t/h)", "Débit global (t/h)", "Débit (t/h)"]:
+                if cle in resultats and isinstance(resultats[cle], (int, float)):
+                    valeur_machine_pour_vapeur = resultats[cle]
+                    break
+
+            # Si aucune clé prioritaire trouvée, on prend la 1ère valeur numérique disponible
+            if valeur_machine_pour_vapeur is None:
+                for cle, val in resultats.items():
+                    if isinstance(val, (int, float)):
+                        valeur_machine_pour_vapeur = val
+                        break
+
+            # Ajouter au graphique si on a trouvé une valeur
+            if valeur_machine_pour_vapeur and valeur_machine_pour_vapeur > 0:
                 labels.append(machine)
                 values.append(valeur_machine_pour_vapeur)
 
