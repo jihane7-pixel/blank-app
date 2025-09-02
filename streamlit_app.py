@@ -1696,13 +1696,13 @@ def bilan_gazsIncondensables():
         # Résultats
         st.success(f"🔹 Débit corrigé (710HL + R2, multiplié par 2) = {debit_R2_710_corrige:.3f} t/h")
         st.success(f"🔹 Débit cuite 550HL = {debit_550HL:.3f} t/h")
-        st.success(f"🌍 Débit global total = {debit_total:.3f} t/h")
+        st.success(f"🌍 Débit total = {debit_total:.3f} t/h")
 
         # Sauvegarde dans la session
         st.session_state["resultats_machines"]["Échappement de la VPT & Gazs incondensables"] = {
             "Débit corrigé (710HL+R2) (t/h)": debit_R2_710_corrige,
             "Débit cuite 550HL (t/h)": debit_550HL,
-            "Débit global total (t/h)": debit_total,
+            "Débit total (t/h)": debit_total,
         }
 
     except Exception as e:
@@ -1848,13 +1848,13 @@ def bilan_soufflage_filtre():
             # Résultats
             st.success(f"🔹 Volume total vapeur par jour = {V_total:.2f} m³/jour")
             st.success(f"🔹 Débit volumique horaire = {Q_hour:.2f} m³/h")
-            st.success(f"🔹 Débit massique vapeur VPT = {m_VPT:.4f} t/h")
+            st.success(f"🔹 Débit total = {m_VPT:.4f} t/h")
 
             # Sauvegarde session
             st.session_state["resultats_machines"]["Soufflage des filtres"] = {
                 "Volume total (m³/jour)": V_total,
                 "Débit volumique (m³/h)": Q_hour,
-                "Débit massique VPT (t/h)": m_VPT,
+                "Débit total (t/h)": m_VPT,
             }
 
         except Exception as e:
