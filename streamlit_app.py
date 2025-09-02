@@ -2040,19 +2040,18 @@ def regroupement_par_vapeur(resultats):
         "Cuite R2": "VPT",
         "ECH 2400 (VPT)": "VPT",
         "ECH sécheur" : "VPT",
+        "Dégraissage des cuites STG1+STG2" : "VPT",
+        "Échappement de la VPT & Gazs incondensables" :"VPT",
+        "Soufflage des filtres" : "VPT",
+        "ECH Commune Carbonatée" :"VPT",
+    
 
         "Cuite R31": "Vvkt",
         "Cuite R32": "Vvkt",
         "Cuite R4": "Vvkt",
         "Cuite A": "Vvkt",
         "Cuite B": "Vvkt",
-        "Cuite C": "Vvkt",
-
-        "Dégraissage des cuites STG1+STG2" : "VPT",
-        "Échappement de la VPT & Gazs incondensables" :"VPT",
-        "Soufflage des filtres" : "VPT",
-        "ECH Commune Carbonatée" :"VPT"    
-    
+        "Cuite C": "Vvkt"
     }
 
     # Initialisation
@@ -2214,10 +2213,18 @@ def generer_pdf_resultats():
             pdf.ln(2)
 
             # Récupérer la valeur pour cette vapeur pour le pie chart
-            valeur_machine_pour_vapeur = resultats.get(vapeur, 0)
+            # Récupérer la valeur la plus représentative pour le pie chart
+            valeur_machine_pour_vapeur = (
+                resultats.get("Débit total (t/h)") or
+                resultats.get("Débit global (t/h)") or
+                resultats.get("Débit (t/h)") or
+                0
+            )
+
             if valeur_machine_pour_vapeur > 0:
                 labels.append(machine)
                 values.append(valeur_machine_pour_vapeur)
+
 
         if labels and values:
             pdf.ln(5)
